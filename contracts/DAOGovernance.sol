@@ -1,13 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 import "hardhat/console.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract DAOGovernance {
+    IERC20 public voteToken;
     mapping(uint256 => Proposal) public proposals;
     uint256 private proposalCount;
     uint256 private votingDuration = 3 days;
     uint256 public quorum;
     uint256 private constant DEFAULT_QUORUM = 10000 * 1e18;
+
+    constructor(address _voteToken){
+        require(_voteToken != address(0), "Invalid token address");
+        voteToken = IERC20(_voteToken);
+    }
 
     struct Proposal {
         uint256 id;
@@ -45,13 +52,15 @@ contract DAOGovernance {
         require(!proposal.executed, "Proposal has already been executed");
         require(!proposal.hasVoted[msg.sender], "Already voted");
 
-        // check if the voter has enough token balance (if applicable)
-
+        uint256 balance = voteToken.balanceOf(msg.sender);
+        require(balance > 0, "You must hold tokens to vote");
+           
         if (_voteYes) {
             proposal.voteCountYes++;
         } else {
             proposal.voteCountNo++;
         }
+
         proposal.hasVoted[msg.sender] = true;
     }
 
